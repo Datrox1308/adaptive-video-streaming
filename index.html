@@ -17,10 +17,19 @@
       border-radius: 8px;
       box-shadow: 0 0 12px #000;
     }
-    .instructions {
-      margin-top: 2rem;
-      font-size: 1rem;
-      color: #bbb;
+    .stats {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      background: #2a1e1d;
+      padding: 1rem;
+      border-radius: 10px;
+      display: inline-block;
+      text-align: left;
+      max-width: 90%;
+    }
+    .stats span {
+      display: block;
+      margin-bottom: 0.3rem;
     }
   </style>
 </head>
@@ -28,73 +37,71 @@
 
   <h1>Adaptive Video Streaming (HLS)</h1>
   <video id="video" controls muted></video>
-  <div class="instructions">
-    ▶️ Open your browser's developer tools (F12 or right-click → Inspect → Console)<br>
-    to view live streaming stats and playback logs.
+  <div class="stats" id="stats">
+    <span>🔄 Level: -</span>
+    <span>📐 Resolution: -</span>
+    <span>🎯 Bitrate: -</span>
+    <span>🌐 Bandwidth Estimate: -</span>
+    <span>⚡ Download Speed: -</span>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
     const video = document.getElementById('video');
+    const statsBox = document.getElementById('stats');
     const videoSrc = 'master.m3u8';
+
+    function updateStat(label, value) {
+      const span = [...statsBox.children].find(s => s.textContent.startsWith(label));
+      if (span) span.textContent = `${label} ${value}`;
+    }
 
     if (Hls.isSupported()) {
       const hls = new Hls();
       hls.attachMedia(video);
       hls.loadSource(videoSrc);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        console.log('✅ Manifest loaded');
-        console.log('Available quality levels:', data.levels.map((l, i) => ({
-          level: i,
-          resolution: `${l.width}x${l.height}`,
-          bitrate: l.bitrate
-        })));
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play();
       });
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
         const level = hls.levels[data.level];
-        console.log(`🔁 Switched to quality level ${data.level}: ${level.width}x${level.height} @ ${Math.round(level.bitrate / 1000)} kbps`);
+        updateStat("🔄 Level:", data.level);
+        updateStat("📐 Resolution:", `${level.width}x${level.height}`);
+        updateStat("🎯 Bitrate:", `${Math.round(level.bitrate / 1000)} kbps`);
       });
 
-hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
-  const bw = hls.bandwidthEstimate || 0;
-  console.log(`📦 Segment loaded`);
+      hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+        const bw = hls.bandwidthEstimate || 0;
+        updateStat("🌐 Bandwidth Estimate:", `${(bw / 1024).toFixed(1)} kbps`);
 
-  if (data?.stats?.total && data.stats.tload && data.stats.trequest) {
-    const rate = (data.stats.total / 1024 / (data.stats.tload - data.stats.trequest)) * 1000;
-    console.log(`🌐 Estimated bandwidth: ${(bw / 1024).toFixed(2)} kbps`);
-    console.log(`⚡ Download speed: ${rate.toFixed(2)} KB/s`);
-  } else {
-    console.log(`ℹ️ Stats not available for this segment`);
-  }
-});
-
+        if (data?.stats?.total && data.stats.tload && data.stats.trequest) {
+          const rate = (data.stats.total / 1024 / (data.stats.tload - data.stats.trequest)) * 1000;
+          updateStat("⚡ Download Speed:", `${rate.toFixed(1)} KB/s`);
+        } else {
+          updateStat("⚡ Download Speed:", `–`);
+        }
+      });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('❌ HLS.js Error:', data);
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.warn('Trying to recover from network error...');
               hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.warn('Trying to recover from media error...');
               hls.recoverMediaError();
               break;
             default:
-              console.error('Unrecoverable error — destroying HLS.');
               hls.destroy();
-              alert("Failed to play video.");
+              alert("Unrecoverable HLS error.");
               break;
           }
         }
       });
 
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      console.log('🎵 Native HLS support');
       video.src = videoSrc;
       video.addEventListener('loadedmetadata', () => {
         video.play();
