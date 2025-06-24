@@ -42,7 +42,6 @@
     <span>📐 Resolution: -</span>
     <span>🎯 Bitrate: -</span>
     <span>🌐 Bandwidth Estimate: -</span>
-    <span>⚡ Download Speed: -</span>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -72,16 +71,9 @@
         updateStat("🎯 Bitrate:", `${Math.round(level.bitrate / 1000)} kbps`);
       });
 
-      hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+      hls.on(Hls.Events.FRAG_LOADED, () => {
         const bw = hls.bandwidthEstimate || 0;
         updateStat("🌐 Bandwidth Estimate:", `${(bw / 1024).toFixed(1)} kbps`);
-
-        if (data?.stats?.total && data.stats.tload && data.stats.trequest) {
-          const rate = (data.stats.total / 1024 / (data.stats.tload - data.stats.trequest)) * 1000;
-          updateStat("⚡ Download Speed:", `${rate.toFixed(1)} KB/s`);
-        } else {
-          updateStat("⚡ Download Speed:", `–`);
-        }
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
