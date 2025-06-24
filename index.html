@@ -58,13 +58,19 @@
         console.log(`🔁 Switched to quality level ${data.level}: ${level.width}x${level.height} @ ${Math.round(level.bitrate / 1000)} kbps`);
       });
 
-      hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
-        const bw = hls.bandwidthEstimate || 0;
-        const rate = (data.stats.total / 1024 / (data.stats.tload - data.stats.trequest)) * 1000; // KB/s
-        console.log(`📦 Segment loaded - Size: ${data.stats.total} bytes`);
-        console.log(`🌐 Estimated bandwidth: ${(bw / 1024).toFixed(2)} kbps`);
-        console.log(`⚡ Download speed: ${rate.toFixed(2)} KB/s`);
-      });
+hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+  const bw = hls.bandwidthEstimate || 0;
+  console.log(`📦 Segment loaded`);
+
+  if (data?.stats?.total && data.stats.tload && data.stats.trequest) {
+    const rate = (data.stats.total / 1024 / (data.stats.tload - data.stats.trequest)) * 1000;
+    console.log(`🌐 Estimated bandwidth: ${(bw / 1024).toFixed(2)} kbps`);
+    console.log(`⚡ Download speed: ${rate.toFixed(2)} KB/s`);
+  } else {
+    console.log(`ℹ️ Stats not available for this segment`);
+  }
+});
+
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('❌ HLS.js Error:', data);
