@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HLS Video Player</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background-color: #f9f9f9;
+    }
+    video {
+      max-width: 100%;
+      border: 2px solid #444;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Adaptive Video Streaming (HLS)</h1>
+  <video id="video" controls autoplay muted></video>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const video = document.getElementById('video');
+    const videoSrc = 'https://<your-username>.github.io/<your-repo>/master.m3u8'; // <--- Replace this!
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function () {
+        video.play();
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoSrc;
+      video.addEventListener('loadedmetadata', function () {
+        video.play();
+      });
+    } else {
+      alert("Your browser doesn't support HLS playback.");
+    }
+  </script>
+
+</body>
+</html>
